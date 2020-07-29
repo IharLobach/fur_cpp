@@ -54,6 +54,10 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "cinttypes": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "csignal": "cpp",
+        "complex": "cpp",
+        "regex": "cpp",
+        "iomanip": "cpp"
     }
 }
