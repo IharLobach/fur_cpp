@@ -1,3 +1,4 @@
+#include <nlohmann/json.hpp>
 #include <xtensor/xnpy.hpp>
 #include <complex>
 #include <cstdlib>
@@ -7,6 +8,10 @@
 #include <cmath>
 #include <iomanip>
 #include <ctime>
+#include <stdio.h>
+#include <stdlib.h> /* atoi */
+// for convenience
+using json = nlohmann::json;
 
 int nx, ny, nz;
 bool isinRange(int val, int r);
@@ -16,34 +21,60 @@ std::complex<double> myexp(int ixp, int iyp, int m1, int n1, int m2, int n2, int
 
 double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz);
 
-double Sx = 300.96585801243214;
-double Sy = 240.67384278137428;
-double dx = 1048234.8735736432;
-double dy = -487663.40045622655;
-double sxp = 0.00043265807507931146;
-double syp = 0.00043148229886993364;
-double dax = 4.9609375e-05/3.5;
-double day = 4.9614674702039514e-05/3.5;
-double lmin = 0.85;
-double dl = 0.0015000000000000002;
-double sz = 286275.88162576384;
-double axmin;
-double aymin;
+double Sx,Sy,dx,dy,sxp,syp,dax,day,lmin,dl,sz,axmin,aymin,k0,re,im,V,mfold;
 int ixp, iyp, m1, n1, m2, n2, il;
 int m1Mixp, n1Miyp, m2Mixp, n2Miyp;
-double k0;
-double re, im;
-double V;
 int64_t m0;
 std::complex<double> s;
 
-int main()
+int main(int argc, char* argv[])
 {
-    auto data = xt::load_npy<std::complex<double>>("/mnt/c/Users/lobac_000/OneDrive - Fermi National Accelerator Laboratory/FUR/SRW_SLAC_undulator_spectrum/Ex_3D_with_losses.npy");
-    std::cout << data.dimension() << std::endl;
+    int seed = 1;
+    if (argc > 2) {
+        seed = atoi(argv[2]);
+    }
+    std::cout << "Random seed = " << seed << std::endl;
+    std::ifstream i(argv[1]);
+    json j;
+    i >> j;
+    std::string filepath = j["npy_file_path"];
+    std::cout << ".npy file path = " << filepath << std::endl;
+    Sx = j["Sx"];
+    std::cout << "Sx = " << Sx << std::endl;
+    Sy = j["Sy"];
+    std::cout << "Sy = " << Sy << std::endl;
+    dx = j["dx"];
+    std::cout << "dx = " << dx << std::endl;
+    dy = j["dy"];
+    std::cout << "dy = " << dy << std::endl;
+    sxp = j["sxp"];
+    std::cout << "sxp = " << sxp << std::endl;
+    syp = j["syp"];
+    std::cout << "syp = " << syp << std::endl;
+    dax = j["dax"];
+    std::cout << "dax = " << dax << std::endl;
+    day = j["day"];
+    std::cout << "day = " << day << std::endl;
+    lmin = j["lmin"];
+    std::cout << "lmin = " << lmin << std::endl;
+    dl = j["dl"];
+    std::cout << "dl = " << dl << std::endl;
+    sz = j["sz"];
+    std::cout << "sz = " << sz << std::endl;
+    m0 = j["m0"];
+    std::cout << "m0 = " << m0 << std::endl;
+    mfold = j["mfold"];
+    std::cout << "mfold = " << mfold << std::endl;
+
+    std::srand(seed);
+
+    auto data = xt::load_npy<std::complex<double>>(filepath);
     nx = data.shape()[2];
+    std::cout << "nx = " << nx << std::endl;
     ny = data.shape()[1];
+    std::cout << "ny = " << ny << std::endl;
     nz = data.shape()[0];
+    std::cout << "nz = " << nz << std::endl;
     axmin = -dax * (nx - 1) / 2.0;
     aymin = -day * (ny - 1) / 2.0;
     const std::complex<double> *Ex3d = data.data();
@@ -52,8 +83,8 @@ int main()
     V = dl * (nz - 1) * pow(dax * (nx - 1) * day * (ny - 1), 2);
     std::cout << "Starting the loop" << std::endl;
     s = 0;
-    m0 = 100000;
-    for (int64_t i = 0; true; i++)
+    int64_t imax = m0*pow(2, mfold)+1;
+    for (int64_t i = 0; i<imax; i++)
     {
         il = std::rand() % nz;
         ixp = std::rand() % nx;

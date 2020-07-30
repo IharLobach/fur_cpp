@@ -58,6 +58,8 @@
         "csignal": "cpp",
         "complex": "cpp",
         "regex": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "forward_list": "cpp",
+        "valarray": "cpp"
     }
 }
