@@ -14,17 +14,19 @@ std::complex<double> ex3d(const std::complex<double> *Ex3d, int z, int y, int x)
 bool isin(int a, int b, int c, int d, int l);
 std::complex<double> myexp(int ixp, int iyp, int m1, int n1, int m2, int n2, int il);
 
+double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz);
+
 double Sx = 300.96585801243214;
 double Sy = 240.67384278137428;
 double dx = 1048234.8735736432;
 double dy = -487663.40045622655;
 double sxp = 0.00043265807507931146;
 double syp = 0.00043148229886993364;
-double dax = 4.9609375e-05;
-double day = 4.9614674702039514e-05;
+double dax = 4.9609375e-05/3.5;
+double day = 4.9614674702039514e-05/3.5;
 double lmin = 0.85;
 double dl = 0.0015000000000000002;
-double sz = 30e4;
+double sz = 286275.88162576384;
 double axmin;
 double aymin;
 int ixp, iyp, m1, n1, m2, n2, il;
@@ -37,19 +39,21 @@ std::complex<double> s;
 
 int main()
 {
-    auto data = xt::load_npy<std::complex<double>>("/mnt/c/Users/lobac_000/OneDrive - Fermi National Accelerator Laboratory/FUR/SRW_SLAC_undulator_spectrum/Ex_3D.npy");
+    auto data = xt::load_npy<std::complex<double>>("/mnt/c/Users/lobac_000/OneDrive - Fermi National Accelerator Laboratory/FUR/SRW_SLAC_undulator_spectrum/Ex_3D_with_losses.npy");
     std::cout << data.dimension() << std::endl;
     nx = data.shape()[2];
     ny = data.shape()[1];
     nz = data.shape()[0];
-    axmin = -dax * (nx - 1) / 2;
-    aymin = -day * (ny - 1) / 2;
+    axmin = -dax * (nx - 1) / 2.0;
+    aymin = -day * (ny - 1) / 2.0;
     const std::complex<double> *Ex3d = data.data();
-    V = dl * (nz - 1) * pow(dax * (nx - 1) * day * (ny - 1), 3);
+    double tot = dl * dax * day * sum(Ex3d, nx, ny, nz);
+    std::cout << "tot = " << tot << std::endl;
+    V = dl * (nz - 1) * pow(dax * (nx - 1) * day * (ny - 1), 2);
     std::cout << "Starting the loop" << std::endl;
     s = 0;
     m0 = 100000;
-    for (int i = 0; true; i++)
+    for (int64_t i = 0; true; i++)
     {
         il = std::rand() % nz;
         ixp = std::rand() % nx;
@@ -64,11 +68,11 @@ int main()
         n2Miyp = n2 - iyp;
         if (isin(m1Mixp, n1Miyp, m2Mixp, n2Miyp, il))
         {
-            s += ex3d(Ex3d, il, n1Miyp, m1Mixp) * ex3d(Ex3d, il, n1, m1) * ex3d(Ex3d, il, n2Miyp, m2Mixp) * ex3d(Ex3d, il, n2, m2) * myexp(ixp, iyp, m1, n1, m2, n2, il);
+            s += pow(lmin+dl*il,2)*ex3d(Ex3d, il, n1Miyp, m1Mixp) * conj(ex3d(Ex3d, il, n1, m1)* ex3d(Ex3d, il, n2Miyp, m2Mixp)) * ex3d(Ex3d, il, n2, m2) * myexp(ixp, iyp, m1, n1, m2, n2, il);
         }
         if (i == m0)
         {
-            std::complex<double> M = 1.0 / (sqrt(M_PI) / sz * V / i / 4.0 / M_PI / sxp / syp * s);
+            std::complex<double> M = pow(tot, 2) / (1.0/2.0/sqrt(M_PI) / sz * V / i / 4.0 / M_PI / sxp / syp * s);
             std::time_t t = std::time(nullptr);
             std::cout << std::put_time(std::localtime(&t), "%c %Z") << std::endl;
             std::cout << "n points = " << i << ", M = " << M << std::endl;
@@ -125,8 +129,24 @@ bool isin(int a, int b, int c, int d, int l)
 std::complex<double> myexp(int ixp, int iyp, int m1, int n1, int m2, int n2, int il)
 {
     k0 = 2 * M_PI / (lmin + dl * il);
-    re = pow((axmin + dax * ixp) / sxp, 2) / 4 + pow((aymin + day * iyp) / syp, 2) / 4 + pow(k0 * Sx * dax * (m1 - m2), 2) * pow(k0 * Sy * day * (n1 - n2), 2);
+    re = pow((axmin + dax * ixp) / sxp, 2) / 4 + pow((aymin + day * iyp) / syp, 2) / 4 + pow(k0 * Sx * dax * (m1 - m2), 2) + pow(k0 * Sy * day * (n1 - n2), 2);
     im = k0 * dx * dax * (m1 - m2) * (axmin + dax * ixp) + k0 * dy * day * (n1 - n2) * (aymin + day * iyp);
     std::complex<double> ar(re, im);
     return exp(-ar);
+}
+
+double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz)
+{
+    double res = 0;
+    for (int i = 0; i < nx; i++)
+    {
+        for (int j = 0; j < ny; j++)
+        {
+            for (int k = 0; k < nz; k++)
+            {
+                res += pow(abs(ex3d(Ex3d, k, j, i)), 2);
+            }
+        }
+    }
+    return res;
 }
