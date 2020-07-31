@@ -74,6 +74,9 @@ int main(int argc, char* argv[])
     std::cout << "mfold = " << mfold << std::endl;
 
     std::srand(seed);
+    std::default_random_engine generator;
+    std::normal_distribution<double> distx(0, sqrt(2.0)*sxp);
+    std::normal_distribution<double> disty(0, sqrt(2.0)*syp);
 
     auto data = xt::load_npy<std::complex<double>>(filepath);
     nx = data.shape()[2];
@@ -90,7 +93,7 @@ int main(int argc, char* argv[])
     const std::complex<double> *Ex3d = data.data();
     double tot = dl * dax * day * sum(Ex3d, nx, ny, nz);
     std::cout << "tot = " << tot << std::endl;
-    V = dl * (nz - 1) * pow(dax * (nx - 1) * day * (ny - 1), 2) * (2*xplim*2*yplim);
+    V = dl * (nz - 1) * pow(dax * (nx - 1) * day * (ny - 1), 2);
     std::cout << "Starting the loop" << std::endl;
     s = 0;
     int64_t imax = m0*pow(2, mfold)+1;
@@ -117,8 +120,8 @@ int main(int argc, char* argv[])
         if (n2==ny){
             n2=ny-1;
         }
-        xp = myrand(-xplim, xplim);
-        yp = myrand(-yplim, yplim);
+        xp = distx(generator);
+        yp = disty(generator);
         il = int((lam-lmin)/dl);
         if (il==nz){
             il=nz-1;
@@ -133,7 +136,7 @@ int main(int argc, char* argv[])
         }
         if (i == m0)
         {
-            std::complex<double> M = pow(tot, 2) / (1.0/2.0/sqrt(M_PI) / sz/4.0/M_PI/sxp/syp * V * s);
+            std::complex<double> M = pow(tot, 2) / (1.0/2.0/sqrt(M_PI) / sz * V * s);
             std::time_t t = std::time(nullptr);
             std::cout << std::put_time(std::localtime(&t), "%c %Z") << std::endl;
             std::cout << "n points = " << i << ", M = " << M << std::endl;
@@ -190,7 +193,7 @@ bool isin(int a, int b, int c, int d, int l)
 std::complex<double> myexp(double xp, double yp, double fm1, double fn1, double fm2, double fn2, double lam)
 {
     k0 = 2 * M_PI / lam;
-    re = pow(xp/2/sxp,2) + pow(yp/2/syp,2) + pow(k0 * Sx * (fm1-fm2), 2) + pow(k0 * Sy * (fn1-fn2), 2);
+    re = pow(k0 * Sx * (fm1-fm2), 2) + pow(k0 * Sy * (fn1-fn2), 2);
     im = k0 * dx * (fm1 - fm2) * xp + k0 * dy * (fn1 - fn2) * yp;
     std::complex<double> ar(re, im);
     return exp(-ar);
