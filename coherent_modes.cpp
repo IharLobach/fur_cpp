@@ -10,6 +10,7 @@
 #include <ctime>
 #include <stdio.h>
 #include <stdlib.h> /* atoi */
+#include <random>
 // for convenience
 using json = nlohmann::json;
 
@@ -17,11 +18,11 @@ int nx, ny, nz;
 bool isinRange(int val, int r);
 std::complex<double> ex3d(const std::complex<double> *Ex3d, int z, int y, int x);
 bool isin(int a, int b, int c, int d, int l);
-std::complex<double> myexp(int ixp, int iyp, int m1, int n1, int m2, int n2, int il);
+std::complex<double> myexp(double xp, double yp, int m1, int n1, int m2, int n2, int il);
 
 double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz);
 
-double Sx,Sy,dx,dy,sxp,syp,dax,day,lmin,dl,sz,axmin,aymin,k0,re,im,V,mfold;
+double Sx,Sy,dx,dy,sxp,syp,dax,day,lmin,dl,sz,axmin,aymin,k0,re,im,V,mfold,xp,yp;
 int ixp, iyp, m1, n1, m2, n2, il;
 int m1Mixp, n1Miyp, m2Mixp, n2Miyp;
 int64_t m0;
@@ -67,6 +68,9 @@ int main(int argc, char* argv[])
     std::cout << "mfold = " << mfold << std::endl;
 
     std::srand(seed);
+    std::default_random_engine generator;
+    std::normal_distribution<double> distx(0, sqrt(2) * sxp);
+    std::normal_distribution<double> disty(0, sqrt(2) * syp);
 
     auto data = xt::load_npy<std::complex<double>>(filepath);
     nx = data.shape()[2];
@@ -84,13 +88,15 @@ int main(int argc, char* argv[])
     std::cout << "Starting the loop" << std::endl;
     s = 0;
     int64_t imax = m0*pow(2, mfold)+1;
-    for (int64_t i = 0; i<imax; i++)
-    {
+    for (int64_t i = 1; i<imax; i++)
+    { 
         il = std::rand() % nz;
-        ixp = std::rand() % nx;
+        xp = distx(generator);
+        ixp = int(xp / dax + 0.5);
         m1 = std::rand() % nx;
         m2 = std::rand() % nx;
-        iyp = std::rand() % ny;
+        yp = disty(generator);
+        iyp = int(yp / day + 0.5);
         n1 = std::rand() % ny;
         n2 = std::rand() % ny;
         m1Mixp = m1 - ixp;
@@ -99,11 +105,11 @@ int main(int argc, char* argv[])
         n2Miyp = n2 - iyp;
         if (isin(m1Mixp, n1Miyp, m2Mixp, n2Miyp, il))
         {
-            s += pow(lmin+dl*il,2)*ex3d(Ex3d, il, n1Miyp, m1Mixp) * conj(ex3d(Ex3d, il, n1, m1)* ex3d(Ex3d, il, n2Miyp, m2Mixp)) * ex3d(Ex3d, il, n2, m2) * myexp(ixp, iyp, m1, n1, m2, n2, il);
+            s = s * (double(i-1)/i) + (1.0/i) * pow(lmin+dl*il,2)*ex3d(Ex3d, il, n1Miyp, m1Mixp) * conj(ex3d(Ex3d, il, n1, m1)* ex3d(Ex3d, il, n2Miyp, m2Mixp)) * ex3d(Ex3d, il, n2, m2) * myexp(xp, yp, m1, n1, m2, n2, il);
         }
         if (i == m0)
         {
-            std::complex<double> M = pow(tot, 2) / (1.0/2.0/sqrt(M_PI) / sz * V / i / 4.0 / M_PI / sxp / syp * s);
+            std::complex<double> M = pow(tot, 2) / (1.0/2.0/sqrt(M_PI) / sz * V * s);
             std::time_t t = std::time(nullptr);
             std::cout << std::put_time(std::localtime(&t), "%c %Z") << std::endl;
             std::cout << "n points = " << i << ", M = " << M << std::endl;
@@ -157,11 +163,11 @@ bool isin(int a, int b, int c, int d, int l)
     return true;
 }
 
-std::complex<double> myexp(int ixp, int iyp, int m1, int n1, int m2, int n2, int il)
+std::complex<double> myexp(double xp, double yp, int m1, int n1, int m2, int n2, int il)
 {
     k0 = 2 * M_PI / (lmin + dl * il);
-    re = pow((axmin + dax * ixp) / sxp, 2) / 4 + pow((aymin + day * iyp) / syp, 2) / 4 + pow(k0 * Sx * dax * (m1 - m2), 2) + pow(k0 * Sy * day * (n1 - n2), 2);
-    im = k0 * dx * dax * (m1 - m2) * (axmin + dax * ixp) + k0 * dy * day * (n1 - n2) * (aymin + day * iyp);
+    re = pow(k0 * Sx * dax * (m1 - m2), 2) + pow(k0 * Sy * day * (n1 - n2), 2);
+    im = k0 * dx * dax * (m1 - m2) * (dax * xp) + k0 * dy * day * (n1 - n2) * (day * yp);
     std::complex<double> ar(re, im);
     return exp(-ar);
 }
