@@ -60,6 +60,7 @@
         "regex": "cpp",
         "iomanip": "cpp",
         "forward_list": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "random": "cpp"
     }
 }

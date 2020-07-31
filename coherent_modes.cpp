@@ -26,9 +26,9 @@ double myrand(double LO, double HI);
 
 double Sx, Sy, dx, dy, sxp, syp, dax, day, lmin, lmax, dl, xmin, xmax, ymin, ymax, sz, k0, re, im, V, mfold, xp, yp, fm1, fn1, fm2, fn2, lam, xplim, yplim;
 int ixp, iyp, m1, n1, m2, n2, il;
-int m1Mixp, n1Miyp, m2Mixp, n2Miyp;
+int m1Mixp, n1Miyp, m2Mixp, n2Miyp, kmax;
 int64_t m0;
-std::complex<double> s;
+std::complex<double> s, Ex3diln1m1, Ex3diln2m2, ar;
 
 int main(int argc, char* argv[])
 {
@@ -37,9 +37,9 @@ int main(int argc, char* argv[])
         seed = atoi(argv[2]);
     }
     std::cout << "Random seed = " << seed << std::endl;
-    std::ifstream i(argv[1]);
+    std::ifstream input(argv[1]);
     json j;
-    i >> j;
+    input >> j;
     std::string filepath = j["npy_file_path"];
     std::cout << ".npy file path = " << filepath << std::endl;
     Sx = j["Sx"];
@@ -72,11 +72,15 @@ int main(int argc, char* argv[])
     std::cout << "m0 = " << m0 << std::endl;
     mfold = j["mfold"];
     std::cout << "mfold = " << mfold << std::endl;
+    kmax = j["kmax"];
+    std::cout << "kmax = " << kmax << std::endl;
 
     std::srand(seed);
     std::default_random_engine generator;
     std::normal_distribution<double> distx(0, sqrt(2.0)*sxp);
     std::normal_distribution<double> disty(0, sqrt(2.0)*syp);
+    std::normal_distribution<double> distfm(0, 1.0 / sqrt(2.0)  / Sx);
+    std::normal_distribution<double> distfn(0, 1.0 / sqrt(2.0) / Sy);
 
     auto data = xt::load_npy<std::complex<double>>(filepath);
     nx = data.shape()[2];
@@ -87,61 +91,74 @@ int main(int argc, char* argv[])
     dax = (xmax-xmin)/(nx-1);
     day = (ymax-ymin)/(ny-1);
     dl = (lmax-lmin)/(nz-1);
-    xplim = 3*sxp;
-    yplim = 3*syp;
     std::cout << "nz = " << nz << std::endl;
     const std::complex<double> *Ex3d = data.data();
     double tot = dl * dax * day * sum(Ex3d, nx, ny, nz);
     std::cout << "tot = " << tot << std::endl;
-    V = dl * (nz - 1) * pow(dax * (nx - 1) * day * (ny - 1), 2);
+    V = (lmax-lmin) * pow((xmax-xmin) * (ymax-ymin), 1);
     std::cout << "Starting the loop" << std::endl;
     s = 0;
     int64_t imax = m0*pow(2, mfold)+1;
-    for (int64_t i = 1; i<imax; i++)
-    { 
+    for (int64_t i=1;i<imax;i++)
+    {
         lam = myrand(lmin, lmax);
-        fm1 = myrand(xmin, xmax);
+        k0 = 2 * M_PI / lam;
+        double fm1mfm2 = distfm(generator)/k0;
         fm2 = myrand(xmin, xmax);
-        fn1 = myrand(ymin, ymax);
+        fm1 = fm2+fm1mfm2;
+        double fn1mfn2 = distfn(generator)/k0;
         fn2 = myrand(ymin, ymax);
-        m1 = int((fm1-xmin)/dax);
-        if (m1==nx){
-            m1 = nx-1;
+        fn1 = fn2+fn1mfn2;
+        m1 = int((fm1 - xmin) / dax);
+        // if (m1 == nx)
+        // {
+        //     m1 = nx - 1;
+        // }
+        m2 = int((fm2 - xmin) / dax);
+        if (m2 == nx)
+        {
+            m2 = nx - 1;
         }
-        m2 = int((fm2-xmin)/dax);
-        if (m2==nx){
-            m2 = nx-1;
+        n1 = int((fn1 - ymin) / day);
+        // if (n1 == ny)
+        // {
+        //     n1 = ny - 1;
+        // }
+        n2 = int((fn2 - ymin) / day);
+        if (n2 == ny)
+        {
+            n2 = ny - 1;
         }
-        n1 = int((fn1-ymin)/day);
-        if (n1==ny){
-            n1 = ny-1;
+        il = int((lam - lmin) / dl);
+        if (il == nz)
+        {
+            il = nz - 1;
         }
-        n2 = int((fn2-ymin)/day);
-        if (n2==ny){
-            n2=ny-1;
-        }
+        
+        ar.real(0.0/*pow(k0 * Sx * (fm1 - fm2), 2) + pow(k0 * Sy * (fn1 - fn2), 2)*/);
         xp = distx(generator);
         yp = disty(generator);
-        il = int((lam-lmin)/dl);
-        if (il==nz){
-            il=nz-1;
-        }
-        m1Mixp = int((fm1-xmin-xp)/dax+0.5);
-        n1Miyp = int((fn1-ymin-yp)/day+0.5);
-        m2Mixp = int((fm2-xmin-xp)/dax+0.5);
-        n2Miyp = int((fn2-ymin-yp)/day+0.5);
-        if (isin(m1Mixp, n1Miyp, m2Mixp, n2Miyp, il))
+        m1Mixp = int((fm1 - xmin - xp) / dax + 0.5);
+        n1Miyp = int((fn1 - ymin - yp) / day + 0.5);
+        m2Mixp = int((fm2 - xmin - xp) / dax + 0.5);
+        n2Miyp = int((fn2 - ymin - yp) / day + 0.5);
+        
+        if (isin(m1,n1,m2,n2,il) & isin(m1Mixp, n1Miyp, m2Mixp, n2Miyp, il))
         {
-            s = s * (double(i-1)/i) + (1.0/i) * pow(lam,2)*ex3d(Ex3d, il, n1Miyp, m1Mixp) * conj(ex3d(Ex3d, il, n1, m1)* ex3d(Ex3d, il, n2Miyp, m2Mixp)) * ex3d(Ex3d, il, n2, m2) * myexp(xp, yp, fm1, fn1, fm2, fn2, lam);
+            ar.imag(k0 * dx * (fm1 - fm2) * xp + k0 * dy * (fn1 - fn2) * yp);
+            s = s * (double(i - 1) / i) + (1.0 / i) * (2 * M_PI /2 / k0 / k0 / Sx / Sy) * pow(lam, 2) * ex3d(Ex3d, il, n1Miyp, m1Mixp) * conj(ex3d(Ex3d, il, n1, m1) * ex3d(Ex3d, il, n2Miyp, m2Mixp)) * ex3d(Ex3d, il, n2, m2) * exp(-ar);
         }
         if (i == m0)
         {
-            std::complex<double> M = pow(tot, 2) / (1.0/2.0/sqrt(M_PI) / sz * V * s);
+            std::complex<double> M = pow(tot, 2) / (1.0 / 2.0 / sqrt(M_PI) / sz * V * s);
             std::time_t t = std::time(nullptr);
             std::cout << std::put_time(std::localtime(&t), "%c %Z") << std::endl;
             std::cout << "n points = " << i << ", M = " << M << std::endl;
             m0 = 2 * m0;
         }
+
+
+
     }
 
     return 0;
@@ -188,15 +205,6 @@ bool isin(int a, int b, int c, int d, int l)
         return false;
     }
     return true;
-}
-
-std::complex<double> myexp(double xp, double yp, double fm1, double fn1, double fm2, double fn2, double lam)
-{
-    k0 = 2 * M_PI / lam;
-    re = pow(k0 * Sx * (fm1-fm2), 2) + pow(k0 * Sy * (fn1-fn2), 2);
-    im = k0 * dx * (fm1 - fm2) * xp + k0 * dy * (fn1 - fn2) * yp;
-    std::complex<double> ar(re, im);
-    return exp(-ar);
 }
 
 double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz)
