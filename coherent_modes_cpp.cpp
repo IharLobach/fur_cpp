@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h> /* atoi */
 #include <random>
+#define BOOST_PYTHON_MAX_ARITY 17
+#include <boost/python.hpp>
 // for convenience
 using json = nlohmann::json;
 
@@ -24,55 +26,34 @@ double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz);
 
 double myrand(double LO, double HI);
 
-double Sx, Sy, dx, dy, sxp, syp, dax, day, lmin, lmax, dl, xmin, xmax, ymin, ymax, sz, k0, re, im, V, mfold, xp, yp, fm1, fn1, fm2, fn2, lam, xplim, yplim;
-int ixp, iyp, m1, n1, m2, n2, il;
-int m1Mixp, n1Miyp, m2Mixp, n2Miyp, kmax;
-int64_t m0;
+
 std::complex<double> s, Ex3diln1m1, Ex3diln2m2, ar;
 
-int main(int argc, char* argv[])
+double CalcM(
+    std::string filepath,
+    double Sx,
+    double Sy,
+    double dx,
+    double dy,
+    double sxp,
+    double syp,
+    double xmin,
+    double xmax,
+    double ymin,
+    double ymax,
+    double lmin,
+    double lmax,
+    double sz,
+    int64_t m0,
+    int mfold,
+    int seed
+    )
 {
-    int seed = 1;
-    if (argc > 2) {
-        seed = atoi(argv[2]);
-    }
-    std::cout << "Random seed = " << seed << std::endl;
-    std::ifstream input(argv[1]);
-    json j;
-    input >> j;
-    std::string filepath = j["npy_file_path"];
-    std::cout << ".npy file path = " << filepath << std::endl;
-    Sx = j["Sx"];
-    std::cout << "Sx = " << Sx << std::endl;
-    Sy = j["Sy"];
-    std::cout << "Sy = " << Sy << std::endl;
-    dx = j["dx"];
-    std::cout << "dx = " << dx << std::endl;
-    dy = j["dy"];
-    std::cout << "dy = " << dy << std::endl;
-    sxp = j["sxp"];
-    std::cout << "sxp = " << sxp << std::endl;
-    syp = j["syp"];
-    std::cout << "syp = " << syp << std::endl;
-    xmin = j["xmin"];
-    std::cout << "xmin = " << xmin << std::endl;
-    xmax = j["xmax"];
-    std::cout << "xmax = " << xmax << std::endl;
-    ymin = j["ymin"];
-    std::cout << "ymin = " << ymin << std::endl;
-    ymax = j["ymax"];
-    std::cout << "ymax = " << ymax << std::endl;
-    lmin = j["lmin"];
-    std::cout << "lmin = " << lmin << std::endl;
-    lmax = j["lmax"];
-    std::cout << "lmax = " << lmax << std::endl;
-    sz = j["sz"];
-    std::cout << "sz = " << sz << std::endl;
-    m0 = j["m0"];
-    std::cout << "m0 = " << m0 << std::endl;
-    mfold = j["mfold"];
-    std::cout << "mfold = " << mfold << std::endl;
-
+    //int seed = 1;
+    //int mfold = 8;
+    double dax, day, dl, k0, re, im, V, xp, yp, fm1, fn1, fm2, fn2, lam, xplim, yplim;
+    int ixp, iyp, m1, n1, m2, n2, il;
+    int m1Mixp, n1Miyp, m2Mixp, n2Miyp;
     std::srand(seed);
     std::default_random_engine generator;
     std::normal_distribution<double> distx(0, sqrt(2.0)*sxp);
@@ -97,6 +78,7 @@ int main(int argc, char* argv[])
     std::cout << "Starting the loop" << std::endl;
     s = 0;
     int64_t imax = m0*pow(2, mfold)+1;
+    ar.real(0.0);
     for (int64_t i=1;i<imax;i++)
     {
         lam = myrand(lmin, lmax);
@@ -108,20 +90,12 @@ int main(int argc, char* argv[])
         fn2 = myrand(ymin, ymax);
         fn1 = fn2+fn1mfn2;
         m1 = int((fm1 - xmin) / dax);
-        // if (m1 == nx)
-        // {
-        //     m1 = nx - 1;
-        // }
         m2 = int((fm2 - xmin) / dax);
         if (m2 == nx)
         {
             m2 = nx - 1;
         }
         n1 = int((fn1 - ymin) / day);
-        // if (n1 == ny)
-        // {
-        //     n1 = ny - 1;
-        // }
         n2 = int((fn2 - ymin) / day);
         if (n2 == ny)
         {
@@ -132,8 +106,6 @@ int main(int argc, char* argv[])
         {
             il = nz - 1;
         }
-        
-        ar.real(0.0/*pow(k0 * Sx * (fm1 - fm2), 2) + pow(k0 * Sy * (fn1 - fn2), 2)*/);
         xp = distx(generator);
         yp = disty(generator);
         m1Mixp = int((fm1 - xmin - xp) / dax + 0.5);
@@ -154,12 +126,10 @@ int main(int argc, char* argv[])
             std::cout << "n points = " << i << ", M = " << M << std::endl;
             m0 = 2 * m0;
         }
-
-
-
     }
-
-    return 0;
+    
+    std::complex<double> M = pow(tot, 2) / (1.0 / 2.0 / sqrt(M_PI) / sz * V * s);
+    return M.real();
 
 }
 
@@ -209,7 +179,7 @@ double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz)
 {
     double res = 0;
     #pragma simd
-    for (int i = 0; i < nx*ny*nz; i++)
+    for (int i = 0; i < nx * ny * nz; i++)
     {
         res += pow(abs(Ex3d[i]), 2);
     }
@@ -218,4 +188,11 @@ double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz)
 
 double myrand(double LO, double HI){
     return LO + static_cast<double>(rand()) / (static_cast<double>(RAND_MAX / (HI - LO)));
+}
+
+
+BOOST_PYTHON_MODULE(coherent_modes_cpp)
+{
+    using namespace boost::python;
+    def("CalcM", CalcM);
 }
