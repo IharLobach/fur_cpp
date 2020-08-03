@@ -13,8 +13,10 @@
 #include <random>
 #define BOOST_PYTHON_MAX_ARITY 17
 #include <boost/python.hpp>
-// for convenience
-using json = nlohmann::json;
+#include <boost/python/tuple.hpp>
+#include <boost/python/numpy.hpp>
+namespace p = boost::python;
+namespace np = boost::python::numpy;
 
 int nx, ny, nz;
 bool isinRange(int val, int r);
@@ -30,7 +32,7 @@ double myrand(double LO, double HI);
 std::complex<double> s, Ex3diln1m1, Ex3diln2m2, ar;
 
 double CalcM(
-    std::string filepath,
+    np::ndarray input_npy,
     double Sx,
     double Sy,
     double dx,
@@ -49,8 +51,6 @@ double CalcM(
     int seed
     )
 {
-    //int seed = 1;
-    //int mfold = 8;
     double dax, day, dl, k0, re, im, V, xp, yp, fm1, fn1, fm2, fn2, lam, xplim, yplim;
     int ixp, iyp, m1, n1, m2, n2, il;
     int m1Mixp, n1Miyp, m2Mixp, n2Miyp;
@@ -61,17 +61,17 @@ double CalcM(
     std::normal_distribution<double> distfm(0, 1.0 / sqrt(2.0)  / Sx);
     std::normal_distribution<double> distfn(0, 1.0 / sqrt(2.0) / Sy);
 
-    auto data = xt::load_npy<std::complex<double>>(filepath);
-    nx = data.shape()[2];
+    auto shape = input_npy.get_shape();
+    nx = (int)(shape[2]);
     std::cout << "nx = " << nx << std::endl;
-    ny = data.shape()[1];
+    ny = (int)(shape[1]);
     std::cout << "ny = " << ny << std::endl;
-    nz = data.shape()[0];
+    nz = (int)(shape[0]);
     dax = (xmax-xmin)/(nx-1);
     day = (ymax-ymin)/(ny-1);
     dl = (lmax-lmin)/(nz-1);
     std::cout << "nz = " << nz << std::endl;
-    const std::complex<double> *Ex3d = data.data();
+    const std::complex<double> *Ex3d = reinterpret_cast<std::complex<double>*>(input_npy.get_data());
     double tot = dl * dax * day * sum(Ex3d, nx, ny, nz);
     std::cout << "tot = " << tot << std::endl;
     V = (lmax-lmin) * pow((xmax-xmin) * (ymax-ymin), 1);
@@ -130,6 +130,7 @@ double CalcM(
     
     std::complex<double> M = pow(tot, 2) / (1.0 / 2.0 / sqrt(M_PI) / sz * V * s);
     return M.real();
+
 
 }
 
@@ -194,5 +195,7 @@ double myrand(double LO, double HI){
 BOOST_PYTHON_MODULE(coherent_modes_cpp)
 {
     using namespace boost::python;
+    Py_Initialize();
+    np::initialize();
     def("CalcM", CalcM);
 }

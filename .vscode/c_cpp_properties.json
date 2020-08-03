@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/local/include",
-                "/home/ilobach/anaconda3/include/"
+                "/home/ilobach/anaconda3/include/",
+                "/usr/include/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
