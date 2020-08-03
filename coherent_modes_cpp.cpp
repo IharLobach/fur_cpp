@@ -31,26 +31,30 @@ double myrand(double LO, double HI);
 
 std::complex<double> s, Ex3diln1m1, Ex3diln2m2, ar;
 
-double CalcM(
+np::ndarray CalcM(
     np::ndarray input_npy,
-    double Sx,
-    double Sy,
-    double dx,
-    double dy,
-    double sxp,
-    double syp,
-    double xmin,
-    double xmax,
-    double ymin,
-    double ymax,
-    double lmin,
-    double lmax,
-    double sz,
-    int64_t m0,
-    int mfold,
-    int seed
+    np::ndarray params
     )
 {
+    const double *prms = reinterpret_cast<double*>(params.get_data());
+
+    double Sx = prms[0];
+    double Sy = prms[1];
+    double dx = prms[2];
+    double dy = prms[3];
+    double sxp = prms[4];
+    double syp = prms[5];
+    double xmin = prms[6];
+    double xmax = prms[7];
+    double ymin = prms[8];
+    double ymax = prms[9];
+    double lmin = prms[10];
+    double lmax = prms[11];
+    double sz = prms[12];
+    int64_t m0 = (int64_t)prms[13];
+    int mfold = (int)prms[14];
+    int seed =  (int)prms[15];
+
     double dax, day, dl, k0, re, im, V, xp, yp, fm1, fn1, fm2, fn2, lam, xplim, yplim;
     int ixp, iyp, m1, n1, m2, n2, il;
     int m1Mixp, n1Miyp, m2Mixp, n2Miyp;
@@ -79,6 +83,8 @@ double CalcM(
     s = 0;
     int64_t imax = m0*pow(2, mfold)+1;
     ar.real(0.0);
+    std::vector<std::complex<double>> res(mfold+1);
+    int res_idx = 0;
     for (int64_t i=1;i<imax;i++)
     {
         lam = myrand(lmin, lmax);
@@ -121,15 +127,19 @@ double CalcM(
         if (i == m0)
         {
             std::complex<double> M = pow(tot, 2) / (1.0 / 2.0 / sqrt(M_PI) / sz * V * s);
+            res[res_idx] = M;
             std::time_t t = std::time(nullptr);
             std::cout << std::put_time(std::localtime(&t), "%c %Z") << std::endl;
             std::cout << "n points = " << i << ", M = " << M << std::endl;
             m0 = 2 * m0;
+            res_idx+=1;
         }
     }
-    
-    std::complex<double> M = pow(tot, 2) / (1.0 / 2.0 / sqrt(M_PI) / sz * V * s);
-    return M.real();
+    Py_intptr_t sh[1] = {res.size()};
+    np::ndarray result = np::zeros(1, sh, np::dtype::get_builtin<std::complex<double>>());
+    std::copy(res.begin(), res.end(), reinterpret_cast<std::complex<double>*>(result.get_data()));
+
+    return result;
 
 
 }

@@ -1,8 +1,7 @@
 import coherent_modes_cpp as cm
 import numpy as np
 
-print(cm.CalcM(np.load("/mnt/c/Users/lobac_000/OneDrive - Fermi National Accelerator Laboratory/FUR/SRW_SLAC_undulator_spectrum/Ex_3D_with_losses.npy"),
-    300.96585801243214,
+params = np.array([    300.96585801243214,
     240.67384278137428,
     1048234.8735736432,
     487663.40045622655,
@@ -17,4 +16,7 @@ print(cm.CalcM(np.load("/mnt/c/Users/lobac_000/OneDrive - Fermi National Acceler
     286275.88162576384,
     100000,
     8,
-    1))
+    1], dtype=np.float64)
+
+print(cm.CalcM(np.load("/mnt/c/Users/lobac_000/OneDrive - Fermi National Accelerator Laboratory/FUR/SRW_SLAC_undulator_spectrum/Ex_3D_with_losses.npy"),
+    params))
