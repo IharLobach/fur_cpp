@@ -24,7 +24,7 @@ std::complex<double> ex3d(const std::complex<double> *Ex3d, int z, int y, int x)
 bool isin(int a, int b, int c, int d, int l);
 std::complex<double> myexp(double xp, double yp, double fm1, double fn1, double fm2, double fn2, double lam);
 
-double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz);
+double CalcSum(const std::complex<double> *Ex3d, int nx, int ny, int nz);
 
 double myrand(double LO, double HI);
 
@@ -51,9 +51,10 @@ np::ndarray CalcM(
     double lmin = prms[10];
     double lmax = prms[11];
     double sz = prms[12];
-    int64_t m0 = (int64_t)prms[13];
-    int mfold = (int)prms[14];
-    int seed =  (int)prms[15];
+    double sum = prms[13];
+    int64_t m0 = (int64_t)prms[14];
+    int mfold = (int)prms[15];
+    int seed =  (int)prms[16];
 
     double dax, day, dl, k0, re, im, V, xp, yp, fm1, fn1, fm2, fn2, lam, xplim, yplim;
     int ixp, iyp, m1, n1, m2, n2, il;
@@ -76,7 +77,15 @@ np::ndarray CalcM(
     dl = (lmax-lmin)/(nz-1);
     std::cout << "nz = " << nz << std::endl;
     const std::complex<double> *Ex3d = reinterpret_cast<std::complex<double>*>(input_npy.get_data());
-    double tot = dl * dax * day * sum(Ex3d, nx, ny, nz);
+    double sm;
+    if (sum == 0.0){
+        sm = CalcSum(Ex3d, nx, ny, nz);
+    }
+    else
+    {
+        sm = sum;
+    }
+    double tot = dl * dax * day * sm;
     std::cout << "tot = " << tot << std::endl;
     V = (lmax-lmin) * pow((xmax-xmin) * (ymax-ymin), 1);
     std::cout << "Starting the loop" << std::endl;
@@ -186,7 +195,7 @@ bool isin(int a, int b, int c, int d, int l)
     return true;
 }
 
-double sum(const std::complex<double> *Ex3d, int nx, int ny, int nz)
+double CalcSum(const std::complex<double> *Ex3d, int nx, int ny, int nz)
 {
     double res = 0;
     #pragma simd
