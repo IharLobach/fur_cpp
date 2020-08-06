@@ -19,5 +19,6 @@ params = np.array([    300.96585801243214,
     8,
     1], dtype=np.float64)
 
-print(cm.CalcM(np.load("/mnt/c/Users/lobac_000/OneDrive - Fermi National Accelerator Laboratory/FUR/SRW_SLAC_undulator_spectrum/Ex_3D_with_losses.npy"),
-    params))
+ampx3d = np.absolute(np.load("/mnt/c/Users/lobac_000/OneDrive - Fermi National Accelerator Laboratory/FUR/SRW_SLAC_undulator_spectrum/Ex_3D_with_losses.npy"))
+
+print(cm.CalcM(ampx3d, params))

@@ -20,16 +20,15 @@ namespace np = boost::python::numpy;
 
 int nx, ny, nz;
 bool isinRange(int val, int r);
-std::complex<double> ex3d(const std::complex<double> *Ex3d, int z, int y, int x);
+double ex3d(const double *Ex3d, int z, int y, int x);
 bool isin(int a, int b, int c, int d, int l);
-std::complex<double> myexp(double xp, double yp, double fm1, double fn1, double fm2, double fn2, double lam);
 
-double CalcSum(const std::complex<double> *Ex3d, int nx, int ny, int nz);
+double CalcSum(const double *Ex3d, int nx, int ny, int nz);
 
 double myrand(double LO, double HI);
 
 
-std::complex<double> s, Ex3diln1m1, Ex3diln2m2, ar;
+std::complex<double> s, ar;
 
 np::ndarray CalcM(
     np::ndarray input_npy,
@@ -76,7 +75,7 @@ np::ndarray CalcM(
     day = (ymax-ymin)/(ny-1);
     dl = (lmax-lmin)/(nz-1);
     std::cout << "nz = " << nz << std::endl;
-    const std::complex<double> *Ex3d = reinterpret_cast<std::complex<double>*>(input_npy.get_data());
+    const double *Ex3d = reinterpret_cast<double*>(input_npy.get_data());
     double sm;
     if (sum == 0.0){
         sm = CalcSum(Ex3d, nx, ny, nz);
@@ -131,7 +130,7 @@ np::ndarray CalcM(
         if (isin(m1,n1,m2,n2,il) & isin(m1Mixp, n1Miyp, m2Mixp, n2Miyp, il))
         {
             ar.imag(k0 * dx * (fm1 - fm2) * xp + k0 * dy * (fn1 - fn2) * yp);
-            s = s * (double(i - 1) / i) + (1.0 / i) * (2 * M_PI /2 / k0 / k0 / Sx / Sy) * pow(lam, 2) * ex3d(Ex3d, il, n1Miyp, m1Mixp) * conj(ex3d(Ex3d, il, n1, m1) * ex3d(Ex3d, il, n2Miyp, m2Mixp)) * ex3d(Ex3d, il, n2, m2) * exp(-ar);
+            s = s * (double(i - 1) / i) + (1.0 / i) * (2 * M_PI /2 / k0 / k0 / Sx / Sy) * pow(lam, 2) * ex3d(Ex3d, il, n1Miyp, m1Mixp) * ex3d(Ex3d, il, n1, m1) * ex3d(Ex3d, il, n2Miyp, m2Mixp) * ex3d(Ex3d, il, n2, m2) * exp(-ar);
         }
         if (i == m0)
         {
@@ -153,7 +152,7 @@ np::ndarray CalcM(
 
 }
 
-std::complex<double> ex3d(const std::complex<double> *Ex3d, int z, int y, int x)
+double ex3d(const double *Ex3d, int z, int y, int x)
 {
     return Ex3d[z * (nx * ny) + y * (nx) + x];
 };
@@ -195,7 +194,7 @@ bool isin(int a, int b, int c, int d, int l)
     return true;
 }
 
-double CalcSum(const std::complex<double> *Ex3d, int nx, int ny, int nz)
+double CalcSum(const double *Ex3d, int nx, int ny, int nz)
 {
     double res = 0;
     #pragma simd
