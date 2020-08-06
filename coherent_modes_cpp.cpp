@@ -213,7 +213,7 @@ np::ndarray CalcM(np::ndarray params, np::ndarray spectral_transmission, double 
                 & isinEllipse(fm2Mixp, fn2Miyp, xmax, ymax)
         )
         {
-            ar.imag(k0 * (fm1 - fm2) * xp + k0 * (fn1 - fn2) * yp);
+            ar.imag(k0 * dx * (fm1 - fm2) * xp + k0 * dy * (fn1 - fn2) * yp);
             s = s * (double(i - 1) / i) + (1.0 / i) * (2 * M_PI /2 / k0 / k0 / Sx / Sy) * pow(lam, 2)
             * CalcAmp(harmonics, fm1Mixp, fn1Miyp, lam, gam, K_peak).first
             * CalcAmp(harmonics, fm1, fn1, lam, gam, K_peak).first
