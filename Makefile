@@ -8,7 +8,7 @@ BOOST_LIB_NUMPY := boost_numpy3
 
 CC := gcc
 
-CFLAGS := -c -fPIC
+CFLAGS := -std=c++17 -c -fPIC
 CInc := -I$(BOOST_INC) -I$(PYTHON_INC) -I$(XTENSOR_INC)
 
 CLinkFlags = -shared -Wl,-soname,$@ -Wl,-rpath,$(BOOST_LIB_LOCATION) -L$(BOOST_LIB_LOCATION) -l$(BOOST_LIB_FILE) -l$(BOOST_LIB_NUMPY)
