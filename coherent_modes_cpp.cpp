@@ -129,7 +129,7 @@ np::ndarray CalcM(
         
         if (isin(m1,n1,m2,n2,il) & isin(m1Mixp, n1Miyp, m2Mixp, n2Miyp, il))
         {
-            ar.imag(k0 * dx * (fm1 - fm2) * xp + k0 * dy * (fn1 - fn2) * yp);
+            ar.imag(k0 * (fm1 - fm2) * xp + k0 * (fn1 - fn2) * yp);
             s = s * (double(i - 1) / i) + (1.0 / i) * (2 * M_PI /2 / k0 / k0 / Sx / Sy) * pow(lam, 2) * ex3d(Ex3d, il, n1Miyp, m1Mixp) * ex3d(Ex3d, il, n1, m1) * ex3d(Ex3d, il, n2Miyp, m2Mixp) * ex3d(Ex3d, il, n2, m2) * exp(-ar);
         }
         if (i == m0)
