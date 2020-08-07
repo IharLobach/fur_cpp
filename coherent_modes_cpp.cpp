@@ -295,9 +295,7 @@ double CalcSumTensor(const double *Ex3d, int nx, int ny, int nz)
     return res;
 }
 
-np::ndarray CalcMFromPrecalculatedFieldAmps(
-    np::ndarray input_npy,
-    np::ndarray params)
+np::ndarray CalcMFromPrecalculatedFieldAmps( np::ndarray input_npy, np::ndarray params)
 {
     std::complex<double> s, ar;
     const double *prms = reinterpret_cast<double *>(params.get_data());
@@ -341,16 +339,15 @@ np::ndarray CalcMFromPrecalculatedFieldAmps(
     dl = (lmax - lmin) / (nz - 1);
     std::cout << "nz = " << nz << std::endl;
     const double *Ex3d = reinterpret_cast<double *>(input_npy.get_data());
-    double sm;
+    double tot;
     if (sum == 0.0)
     {
-        sm = CalcSumTensor(Ex3d, nx, ny, nz);
+        tot = dax*day*dl*CalcSumTensor(Ex3d, nx, ny, nz);
     }
     else
     {
-        sm = sum;
+        tot = sum;
     }
-    double tot = dl * dax * day * sm;
     std::cout << "tot = " << tot << std::endl;
     V = (lmax - lmin) * pow((xmax - xmin) * (ymax - ymin), 1);
     std::cout << "Starting the loop" << std::endl;
