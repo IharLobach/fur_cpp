@@ -295,9 +295,10 @@ double CalcSumTensor(const double *Ex3d, int nx, int ny, int nz)
     return res;
 }
 
-np::ndarray CalcMFromPrecalculatedFieldAmps( np::ndarray input_npy, np::ndarray params)
+np::ndarray CalcMFromPrecalculatedFieldAmps(np::ndarray input_npy, np::ndarray spectral_transmission, np::ndarray params)
 {
     std::complex<double> s, ar;
+    const double *st = reinterpret_cast<double *>(spectral_transmission.get_data());
     const double *prms = reinterpret_cast<double *>(params.get_data());
 
     double Sx = prms[0];
@@ -390,10 +391,16 @@ np::ndarray CalcMFromPrecalculatedFieldAmps( np::ndarray input_npy, np::ndarray 
         m2Mixp = int((fm2 - xmin - xp) / dax + 0.5);
         n2Miyp = int((fn2 - ymin - yp) / day + 0.5);
 
-        if (isin(m1, n1, m2, n2, il) & isin(m1Mixp, n1Miyp, m2Mixp, n2Miyp, il))
+        s = s * (double(i - 1) / i);
+        if (
+            ((pow(fm1/xmax,2)+pow(fn1/ymax,2)) < 1)
+            & ((pow(fm2/xmax,2)+pow(fn2/ymax,2)) < 1)
+            & isin(m1, n1, m2, n2, il)
+            & isin(m1Mixp, n1Miyp, m2Mixp, n2Miyp, il)
+            )
         {
             ar.imag(k0 * dx * (fm1 - fm2) * xp + k0 * dy * (fn1 - fn2) * yp);
-            s = s * (double(i - 1) / i) + (1.0 / i) * (2 * M_PI / 2 / k0 / k0 / Sx / Sy) * pow(lam, 2) * ex3d(Ex3d, il, n1Miyp, m1Mixp) * ex3d(Ex3d, il, n1, m1) * ex3d(Ex3d, il, n2Miyp, m2Mixp) * ex3d(Ex3d, il, n2, m2) * exp(-ar);
+            s = s + (1.0 / i) * (2 * M_PI / 2 / k0 / k0 / Sx / Sy) * pow(lam, 2) * ex3d(Ex3d, il, n1Miyp, m1Mixp) * ex3d(Ex3d, il, n1, m1) * ex3d(Ex3d, il, n2Miyp, m2Mixp) * ex3d(Ex3d, il, n2, m2) * exp(-ar) * pow(st[il],2);
         }
         if (i == m0)
         {
